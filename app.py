@@ -16,7 +16,6 @@ from flask import Flask
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
 url = "https://dadosabertos-download.cgu.gov.br/e-Ouv/manifestacoes-ouvidoria.csv"
-"
 arquivo_original = "manifestacoes_original.csv"
 arquivo_utf8 = "manifestacoes_utf8.csv"
 ultima_atualizacao = ""
