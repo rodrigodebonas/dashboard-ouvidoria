@@ -237,5 +237,5 @@ if __name__ != "__main__":
     gunicorn_app = server
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))  # Usa a porta definida no Render
+    port = int(os.environ.get("PORT", 10000))  # Usa a porta definida no Render
     app.run_server(debug=True, host="0.0.0.0", port=port)    
