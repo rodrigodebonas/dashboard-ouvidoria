@@ -1,10 +1,10 @@
 dash
 dash-bootstrap-components
+flask
+gunicorn
 pandas
+requests
+chardet
 plotly
 schedule
 pytz
-requests
-chardet
-flask
-gunicorn
