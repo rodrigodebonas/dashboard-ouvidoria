@@ -1,0 +1,11 @@
+```
+dash
+dash-bootstrap-components
+pandas
+plotly
+schedule
+pytz
+requests
+chardet
+flask
+gunicorn
