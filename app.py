@@ -53,7 +53,7 @@ def atualizar_dados():
         for line in f_in:
             f_out.write(line)
 
-    chunk_size = 50000
+    chunk_size = 5000
     dfs = []
 
     for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
@@ -227,8 +227,6 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
 
 import os
 
-port = int(os.environ.get("PORT", 8080))  # Usa a porta do ambiente ou 8080
-server = app.server  # Defina o servidor Flask para o Gunicorn
-
 if __name__ == "__main__":
-    app.run_server(debug=False, host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 8080))  # Usa a porta do ambiente ou 8080
+    app.run_server(debug=True, host="0.0.0.0", port=port)
