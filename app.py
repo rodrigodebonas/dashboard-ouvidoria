@@ -1,5 +1,4 @@
 # Instalar as bibliotecas necessárias
-!pip install dash pandas plotly schedule pytz -q
 
 import dash
 from dash import dcc, html, dash_table
