@@ -53,7 +53,12 @@ def atualizar_dados():
         for line in f_in:
             f_out.write(line)
 
-    df = pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=False, dtype=str)
+    colunas_desejadas = ["Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
+                          "Município Manifestação", "UF do Município Manifestação", ]
+
+    df_chunks = pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", usecols=colunas_desejadas, chunksize=5000, dtype=str)
+    df = pd.concat(df_chunks, ignore_index=True)  # ✅ Novo código otimizado para evitar erro de memória!
+
     df.columns = df.columns.str.strip()
 
     # 🔹 Filtrar apenas registros com "Esfera" = "Municipal"
