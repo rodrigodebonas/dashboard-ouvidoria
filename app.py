@@ -61,8 +61,8 @@ def atualizar_dados():
         chunk = chunk[chunk["Esfera"] == "Municipal"]
         dfs.append(chunk)
     
-    if len(pd.concat(dfs)) > 10000:  # Limite inicial de 10.000 registros
-        break
+        if len(pd.concat(dfs)) > 10000:  # Limite inicial de 10.000 registros
+            break
 
     df = pd.concat(dfs, ignore_index=True)
 
