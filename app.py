@@ -16,7 +16,6 @@ from flask import Flask
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
 url = "https://dadosabertos-download.cgu.gov.br/e-Ouv/manifestacoes-ouvidoria.csv"
-"
 arquivo_original = "manifestacoes_original.csv"
 arquivo_utf8 = "manifestacoes_utf8.csv"
 ultima_atualizacao = ""
@@ -54,68 +53,56 @@ def atualizar_dados():
         for line in f_in:
             f_out.write(line)
 
-    chunk_size = 5000
-    dfs = []
+    chunk_size = 5000  # Reduz o chunk para otimizar memória
 
+    # Criar DataFrame processado diretamente
+    df_list = []
+    
     for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
         chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra antes de carregar
-        dfs.append(chunk)
+        chunk = chunk[chunk["Nome Órgão"].isin([
+            "Secretaria Municipal de Segurança e Ordem Pública",
+            "FLORAM - Fundação Municipal do Meio Ambiente",
+            "Pró-Cidadão",
+            "Secretaria Municipal da Fazenda",
+            "Secretaria Municipal do Continente",
+            "Secretaria Municipal de Saúde",
+            "Secretaria Municipal de Educação",
+            "PROCON",
+            "Secretaria Municipal da Assistência Social",
+            "Secretaria Municipal de Cultura, Esporte e Juventude",
+            "IPUF - Instituto de Pesquisa e Planejamento Urbano",
+            "IPREF - Instituto de Previdência de Florianópolis",
+            "Procuradoria Geral do Município",
+            "Secretaria Municipal de Meio Ambiente e Desenvolvimento Sustentável",
+            "Gabinete do Prefeito",
+            "Secretaria Municipal de Planejamento, Habitação e Desenvolvimento Urbano",
+            "Guarda Municipal",
+            "Secretaria Municipal de Planejamento e Inteligência Urbana",
+            "Defesa Civil de Florianópolis",
+            "Secretaria Municipal de Infraestrutura e Manutenção da Cidade",
+            "Secretaria Municipal da Casa Civil",
+            "Secretaria Municipal de Limpeza e Manutenção Urbana",
+            "FCFFC - Fundação Cultural de Florianópolis Franklin Cascaes",
+            "FME - Fundação Municipal de Esportes",
+            "IGEOF - Instituto de Geração de Oportunidades de Florianópolis",
+            "Prefeitura - Ouvidoria Geral",
+            "Secretaria Municipal de Cultura, Esporte e Lazer",
+            "Secretaria Municipal de Governo",
+            "Secretaria Municipal de Licitações, Contratos e Parcerias",
+            "SOMAR - Fundação Rede Solidária Somar Floripa",
+            "Secretaria Municipal de Turismo, Tecnologia e Desenvolvimento Econômico",
+            "Secretaria Municipal de Administração"
+        ])]  # Filtra os órgãos permitidos
+        df_list.append(chunk)
 
-    df = pd.concat(dfs, ignore_index=True)
-
-    colunas_desejadas = ["Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
-                          "Município Manifestação", "UF do Município Manifestação", ]
-
-    df.columns = df.columns.str.strip()
-
-    # 🔹 Filtrar apenas registros com "Esfera" = "Municipal"
-    df = df[df["Esfera"] == "Municipal"]
-
-    # 🔹 Lista de órgãos permitidos
-    orgaos_permitidos = [
-        "Secretaria Municipal de Segurança e Ordem Pública",
-        "FLORAM - Fundação Municipal do Meio Ambiente",
-        "Pró-Cidadão",
-        "Secretaria Municipal da Fazenda",
-        "Secretaria Municipal do Continente",
-        "Secretaria Municipal de Saúde",
-        "Secretaria Municipal de Educação",
-        "PROCON",
-        "Secretaria Municipal da Assistência Social",
-        "Secretaria Municipal de Cultura, Esporte e Juventude",
-        "IPUF - Instituto de Pesquisa e Planejamento Urbano",
-        "IPREF - Instituto de Previdência de Florianópolis",
-        "Procuradoria Geral do Município",
-        "Secretaria Municipal de Meio Ambiente e Desenvolvimento Sustentável",
-        "Gabinete do Prefeito",
-        "Secretaria Municipal de Planejamento, Habitação e Desenvolvimento Urbano",
-        "Guarda Municipal",
-        "Secretaria Municipal de Planejamento e Inteligência Urbana",
-        "Defesa Civil de Florianópolis",
-        "Secretaria Municipal de Infraestrutura e Manutenção da Cidade",
-        "Secretaria Municipal da Casa Civil",
-        "Secretaria Municipal de Limpeza e Manutenção Urbana",
-        "FCFFC - Fundação Cultural de Florianópolis Franklin Cascaes",
-        "FME - Fundação Municipal de Esportes",
-        "IGEOF - Instituto de Geração de Oportunidades de Florianópolis",
-        "Prefeitura - Ouvidoria Geral",
-        "Secretaria Municipal de Cultura, Esporte e Lazer",
-        "Secretaria Municipal de Governo",
-        "Secretaria Municipal de Licitações, Contratos e Parcerias",
-        "SOMAR - Fundação Rede Solidária Somar Floripa",
-        "Secretaria Municipal de Turismo, Tecnologia e Desenvolvimento Econômico",
-        "Secretaria Municipal de Administração"
-    ]
-
-    # 🔹 Filtrar apenas registros que contenham os órgãos permitidos
-    df = df[df["Nome Órgão"].isin(orgaos_permitidos)]
+    df = pd.concat(df_list, ignore_index=True)  # Agora concatena tudo, mas já filtrado
 
     # 🔹 Identificar colunas que contêm datas e converter corretamente
-    colunas_data = [col for col in df.columns if "Data" in col or "data" in col]  # Detecta colunas com "Data" no nome
+    colunas_data = [col for col in df.columns if "Data" in col or "data" in col]
 
-    # 🔹 Aplicar a conversão para todas as colunas de data
     for col in colunas_data:
-        if col in df.columns:  # Verifica se a coluna realmente existe no DataFrame
+        if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True).dt.strftime("%d/%m/%Y")
 
     # 🔹 Criar a coluna "Ano" com base na "Data Registro"
@@ -129,7 +116,7 @@ def atualizar_dados():
 
     fuso_brasilia = pytz.timezone("America/Sao_Paulo")
     ultima_atualizacao = datetime.now(fuso_brasilia).strftime("%d/%m/%Y %H:%M")
-
+    
 # 🔹 4. AGENDANDO ATUALIZAÇÃO DIÁRIA 🔹
 def iniciar_agendamento():
     schedule.every().day.at("01:00").do(atualizar_dados)
