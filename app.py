@@ -66,7 +66,7 @@ def baixar_arquivo():
             with open("manifestacoes_original.csv", "wb") as file:
                 file.write(response.content)
             print("✅ Arquivo baixado com sucesso!")  # Depuração
-else:
+        else:
             raise Exception("❌ Erro ao baixar via requests")
 
     except Exception:
