@@ -13,6 +13,7 @@ import os
 from datetime import datetime
 from dash.dependencies import Input, Output, State
 from flask import Flask
+from google.colab import files
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
 url = "https://dadosabertos-download.cgu.gov.br/e-Ouv/manifestacoes-ouvidoria.csv"
@@ -53,18 +54,7 @@ open(arquivo_utf8, "w", encoding="utf-8") as f_out:
 for line in f_in:
 f_out.write(line)
 
-chunk_size = 25000
-dfs = []
-
-for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
-chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra antes de carregar
-dfs.append(chunk)
-
-df = pd.concat(dfs, ignore_index=True)
-
-colunas_desejadas = ["Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
-"Município Manifestação", "UF do Município Manifestação", ]
-
+df = pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=False, dtype=str)
 df.columns = df.columns.str.strip()
 
 # 🔹 Filtrar apenas registros com "Esfera" = "Municipal"
@@ -226,11 +216,7 @@ df_filtrado = df_filtrado[df_filtrado[col].astype(str).isin(valores)]
 return df_filtrado.to_dict("records"), f"Total filtrado: {len(df_filtrado):,.0f}".replace(",", "."), "Filtros aplicados!"
 
 import os
-
 port = int(os.environ.get("PORT", 10000))  # PORT definida automaticamente pelo Render
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port=10000)
-  
     app.run_server(debug=True, host="0.0.0.0", port=port)
-    
