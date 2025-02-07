@@ -225,5 +225,10 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
 
     return df_filtrado.to_dict("records"), f"Total filtrado: {len(df_filtrado):,.0f}".replace(",", "."), "Filtros aplicados!"
 
+import os
+
+port = int(os.environ.get("PORT", 10000))  # Usa a porta do ambiente ou 10000
+server = app.server  # Defina o servidor Flask para o Gunicorn
+
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port=8050)
+    app.run_server(debug=False, host="0.0.0.0", port=port)
