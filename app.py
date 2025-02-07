@@ -58,7 +58,7 @@ def atualizar_dados():
 
     # 🚀 Para o primeiro deploy, carregue apenas 10.000 registros!
     for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
-    chunk = chunk[chunk["Esfera"] == "Municipal"]
+        chunk = chunk[chunk["Esfera"] == "Municipal"]
         dfs.append(chunk)
     
     if len(pd.concat(dfs)) > 10000:  # Limite inicial de 10.000 registros
