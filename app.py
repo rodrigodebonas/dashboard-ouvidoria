@@ -53,7 +53,7 @@ def atualizar_dados():
         for line in f_in:
             f_out.write(line)
 
-    chunk_size = 50000
+    chunk_size = 25000
     dfs = []
 
     for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
