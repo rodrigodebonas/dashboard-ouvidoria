@@ -232,7 +232,7 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
     return df_filtrado.to_dict("records"), f"Total filtrado: {len(df_filtrado):,.0f}".replace(",", "."), "Filtros aplicados!"
 
 import os
-
+database_url = os.environ.get('DATABASE_URL')
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # Configura porta dinâmica para o Render
     app.run(host="0.0.0.0", port=port, debug=True)
