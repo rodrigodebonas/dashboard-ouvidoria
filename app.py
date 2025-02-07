@@ -13,7 +13,6 @@ import os
 from datetime import datetime
 from dash.dependencies import Input, Output, State
 from flask import Flask
-from google.colab import files
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
 url = "https://dadosabertos-download.cgu.gov.br/e-Ouv/manifestacoes-ouvidoria.csv"
