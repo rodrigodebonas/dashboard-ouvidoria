@@ -15,7 +15,7 @@ from dash.dependencies import Input, Output, State
 from flask import Flask
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
-url = "https://www.dropbox.com/scl/fi/mnrue4bu7onf83canz1ci/manifestacoes_original.csv?rlkey=g930wemxtfjahz9akr4oq8d38&st=iadedrg0&dl=1"
+url = "https://www.dropbox.com/scl/fi/mnrue4bu7onf83canz1ci/manifestacoes_original.csv?rlkey=g930wemxtfjahz9akr4oq8d38&st=15naz7sd&dl=1"
 arquivo_original = "manifestacoes_original.csv"
 arquivo_utf8 = "manifestacoes_utf8.csv"
 ultima_atualizacao = ""
@@ -53,23 +53,12 @@ def atualizar_dados():
         for line in f_in:
             f_out.write(line)
 
-    chunk_size = 5000
-    dfs = []  # Lista para armazenar os chunks
+    df = pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str)
+    colunas_desejadas = ["Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
+                          "Município Manifestação", "UF do Município Manifestação", ]
 
-    for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=2000):
-        chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra antes de carregar
-        dfs.append(chunk)
-
-        if len(pd.concat(dfs)) >= 1000:  # Limita a 1.000 registros no primeiro deploy
-            break
-
-    df = pd.concat(dfs, ignore_index=True).head(1000)  # Mantém os primeiros 1.000 registros
-    del dfs  # Libera memória
-
-    colunas_desejadas = [
-        "Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
-                          "Município Manifestação", "UF do Município Manifestação", 
-    ]
+    df_chunks = pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", usecols=colunas_desejadas, chunksize=5000, dtype=str)
+    df = pd.concat(df_chunks, ignore_index=True)  # ✅ Novo código otimizado para evitar erro de memória!
 
     df.columns = df.columns.str.strip()
 
@@ -147,8 +136,6 @@ thread = threading.Thread(target=iniciar_agendamento, daemon=True)
 thread.start()
 
 # 🔹 5. INICIAR DASH 🔹
-from flask import Flask
-import dash
 server = Flask(__name__)
 app = dash.Dash(__name__, server=server, suppress_callback_exceptions=True)
 app.title = "FalaBR - Registros de Manifestações (Prefeitura de Florianópolis/SC)"
@@ -233,9 +220,5 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
 
     return df_filtrado.to_dict("records"), f"Total filtrado: {len(df_filtrado):,.0f}".replace(",", "."), "Filtros aplicados!"
 
-if __name__ != "__main__":  
-    gunicorn_app = server
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Usa a porta definida no Render
-    app.run_server(debug=True, host="0.0.0.0", port=port)    
+    app.run_server(debug=True, host="0.0.0.0", port=8050)
