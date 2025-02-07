@@ -58,36 +58,44 @@ orgao_filtro = [
 ]
 # 🔹 2. FUNÇÃO PARA BAIXAR O ARQUIVO 🔹
 def baixar_arquivo():
-    global ultima_atualizacao, arquivo_original
+    global ultima_atualizacao
 
     try:
-        response = requests.get(url, timeout=30)
+        response = requests.get(url, timeout=60)
         if response.status_code == 200:
-            with open(arquivo_original, "wb") as file:
+            with open("manifestacoes_original.csv", "wb") as file:
                 file.write(response.content)
-        else:
-            raise Exception("Erro ao baixar via requests")
+            print("✅ Arquivo baixado com sucesso!")  # Depuração
+else:
+            raise Exception("❌ Erro ao baixar via requests")
 
     except Exception:
-        os.system(f"wget -O {arquivo_original} {url}")
-        if not os.path.exists(arquivo_original) or os.path.getsize(arquivo_original) == 0:
-            uploaded = files.upload()
-            arquivo_original = list(uploaded.keys())[0]
+        os.system(f"wget -O manifestacoes_original.csv {url}")
+        if not os.path.exists("manifestacoes_original.csv") or os.path.getsize("manifestacoes_original.csv") == 0:
+            print("❌ Erro: arquivo não encontrado após tentativa de download!")
 
+import os
+
+if not os.path.exists("manifestacoes_utf8.csv"):
+    print("❌ ERRO: Arquivo 'manifestacoes_utf8.csv' não encontrado!")
+    baixar_arquivo()  # Tenta baixar novamente
+    
 # 🔹 3. FUNÇÃO PARA PROCESSAR OS DADOS 🔹
 def atualizar_dados():
     global df, ultima_atualizacao
 
     baixar_arquivo()
 
-    with open(arquivo_original, "rb") as f:
-        resultado = chardet.detect(f.read(100000))
+    with open("manifestacoes_original.csv", "rb") as f:
+        resultado = chardet.detect(f.read(10000))
     codificacao_detectada = resultado["encoding"]
 
-    with open(arquivo_original, "r", encoding=codificacao_detectada, errors="replace") as f_in, \
-         open(arquivo_utf8, "w", encoding="utf-8") as f_out:
+    with open("manifestacoes_original.csv", "r", encoding=codificacao_detectada, errors="replace") as f_in, \
+         open("manifestacoes_utf8.csv", "w", encoding="utf-8") as f_out:
         for line in f_in:
             f_out.write(line)
+
+    print("✅ Arquivo convertido para UTF-8 com sucesso!")  # Depuração
 
 primeiro_chunk = True  # Para saber se precisa escrever o cabeçalho
 
