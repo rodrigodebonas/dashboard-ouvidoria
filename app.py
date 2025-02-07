@@ -73,12 +73,9 @@ def baixar_arquivo():
         os.system(f"wget -O manifestacoes_original.csv {url}")
         if not os.path.exists("manifestacoes_original.csv") or os.path.getsize("manifestacoes_original.csv") == 0:
             print("❌ Erro: arquivo não encontrado após tentativa de download!")
+            return False  # 🔹 Retorna False para interromper o processo
 
-import os
-
-if not os.path.exists("manifestacoes_utf8.csv"):
-    print("❌ ERRO: Arquivo 'manifestacoes_utf8.csv' não encontrado!")
-    baixar_arquivo()  # Tenta baixar novamente
+    return True  # 🔹 Se tudo deu certo, retorna True
     
 # 🔹 3. FUNÇÃO PARA PROCESSAR OS DADOS 🔹
 def atualizar_dados():
