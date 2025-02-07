@@ -53,6 +53,7 @@ def atualizar_dados():
         for line in f_in:
             f_out.write(line)
 
+    df = pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str)
     colunas_desejadas = ["Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
                           "Município Manifestação", "UF do Município Manifestação", ]
 
