@@ -233,8 +233,7 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
 
 import os
 
-port = int(os.environ.get("PORT", 10000))  # PORT definida automaticamente pelo Render
-
 if __name__ == "__main__":
-    app.run_server(debug=True, host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 10000))  # Configura porta dinâmica para o Render
+    app.run(host="0.0.0.0", port=port, debug=True)
     
