@@ -227,7 +227,7 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
 
 import os
 
-port = int(os.environ.get("PORT", 10000))  # Usa a porta do ambiente ou 10000
+port = int(os.environ.get("PORT", 8080))  # Usa a porta do ambiente ou 8080
 server = app.server  # Defina o servidor Flask para o Gunicorn
 
 if __name__ == "__main__":
