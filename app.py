@@ -147,6 +147,7 @@ thread = threading.Thread(target=iniciar_agendamento, daemon=True)
 thread.start()
 
 # 🔹 5. INICIAR DASH 🔹
+from flask import Flask
 server = Flask(__name__)
 app = dash.Dash(__name__, server=server, suppress_callback_exceptions=True)
 app.title = "FalaBR - Registros de Manifestações (Prefeitura de Florianópolis/SC)"
@@ -231,9 +232,8 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
 
     return df_filtrado.to_dict("records"), f"Total filtrado: {len(df_filtrado):,.0f}".replace(",", "."), "Filtros aplicados!"
 
-import os
-database_url = os.environ.get('DATABASE_URL')
 if __name__ == "__main__":
+    import os
     port = int(os.environ.get("PORT", 10000))  # Configura porta dinâmica para o Render
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run_server(debug=True, host="0.0.0.0", port=port)
     
