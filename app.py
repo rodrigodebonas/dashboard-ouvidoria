@@ -54,17 +54,17 @@ def atualizar_dados():
             f_out.write(line)
 
     chunk_size = 50000
-    dfs = []
+    dfs = []  # Lista para armazenar os chunks
 
-    # 🚀 Para o primeiro deploy, carregue apenas 10.000 registros!
-    for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
-        chunk = chunk[chunk["Esfera"] == "Municipal"]
+    for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=5000):
+        chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra antes de carregar
         dfs.append(chunk)
-    
-        if len(pd.concat(dfs)) > 10000:  # Limite inicial de 10.000 registros
+
+        if len(pd.concat(dfs)) >= 10000:  # Limita a 10.000 registros no primeiro deploy
             break
 
-    df = pd.concat(dfs, ignore_index=True)
+    df = pd.concat(dfs, ignore_index=True).head(10000)  # Mantém os primeiros 10.000 registros
+    del dfs  # Libera memória
 
     colunas_desejadas = [
         "Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
