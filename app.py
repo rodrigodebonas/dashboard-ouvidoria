@@ -53,14 +53,14 @@ def atualizar_dados():
         for line in f_in:
             f_out.write(line)
 
-chunk_size = 50000
-dfs = []
+    chunk_size = 50000
+    dfs = []
 
-for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
-    chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra antes de carregar
-    dfs.append(chunk)
+    for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
+        chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra antes de carregar
+        dfs.append(chunk)
 
-df = pd.concat(dfs, ignore_index=True)
+    df = pd.concat(dfs, ignore_index=True)
 
     colunas_desejadas = ["Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
                           "Município Manifestação", "UF do Município Manifestação", ]
