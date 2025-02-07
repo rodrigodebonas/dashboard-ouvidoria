@@ -15,7 +15,7 @@ from dash.dependencies import Input, Output, State
 from flask import Flask
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
-url = "https://dadosabertos-download.cgu.gov.br/e-Ouv/manifestacoes-ouvidoria.csv"
+url = "https://www.dropbox.com/scl/fi/q1ysmx1b358qg0tzq2iih/manifestacoes_original.csv?rlkey=dn7drm0w1qb57sjtmsrlyqm1g&st=4t61ruy2&dl=1"
 arquivo_original = "manifestacoes_original.csv"
 arquivo_utf8 = "manifestacoes_utf8.csv"
 ultima_atualizacao = ""
