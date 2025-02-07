@@ -233,8 +233,9 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
 
     return df_filtrado.to_dict("records"), f"Total filtrado: {len(df_filtrado):,.0f}".replace(",", "."), "Filtros aplicados!"
 
+if __name__ != "__main__":  
+    gunicorn_app = server
+
 if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))  # Configura porta dinâmica para o Render
-    app.run_server(debug=True, host="0.0.0.0", port=port)
+    app.run_server(debug=True, host="0.0.0.0", port=8080)
     
