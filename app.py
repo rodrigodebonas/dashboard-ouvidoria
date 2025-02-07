@@ -17,8 +17,8 @@ from flask import Flask
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
 url = "https://dadosabertos-download.cgu.gov.br/e-Ouv/manifestacoes-ouvidoria.csv"
-arquivo_original = "manifestacoes_original.csv"
-arquivo_utf8 = "manifestacoes_utf8.csv"
+arquivo_baixado = os.path.join(os.getcwd(), "manifestacoes_ouvidoria.csv")
+arquivo_utf8 = os.path.join(os.getcwd(), "manifestacoes_utf8.csv")
 ultima_atualizacao = ""
 
 chunk_size = 10000  # Lê o arquivo em blocos de 10 mil linhas para evitar alto consumo de memória
@@ -63,49 +63,59 @@ def baixar_arquivo():
     try:
         response = requests.get(url, timeout=60)
         if response.status_code == 200:
-            with open("manifestacoes_original.csv", "wb") as file:
+            with open(arquivo_baixado, "wb") as file:
                 file.write(response.content)
-            print("✅ Arquivo baixado com sucesso!")  # Depuração
+            print(f"✅ Arquivo baixado com sucesso! Tamanho: {os.path.getsize(arquivo_baixado)} bytes")
         else:
-            raise Exception("❌ Erro ao baixar via requests")
+            print(f"❌ Erro ao baixar (Código {response.status_code})")
+            return False
 
-    except Exception:
-        os.system(f"wget -O manifestacoes_original.csv {url}")
-        if not os.path.exists("manifestacoes_original.csv") or os.path.getsize("manifestacoes_original.csv") == 0:
-            print("❌ Erro: arquivo não encontrado após tentativa de download!")
-            return False  # 🔹 Retorna False para interromper o processo
+    except Exception as e:
+        print(f"❌ ERRO NO DOWNLOAD: {e}")
+        return False
+        
+    if not os.path.exists(arquivo_baixado) or os.path.getsize(arquivo_baixado) == 0:
+        print("❌ ERRO: O arquivo não foi baixado corretamente!")
+        return False  # 🔹 Retorna False para interromper o processo
 
-    return True  # 🔹 Se tudo deu certo, retorna True
+    print(f"📂 Arquivos na pasta após o download: {os.listdir()}")
+    return True  
     
 # 🔹 3. FUNÇÃO PARA PROCESSAR OS DADOS 🔹
-def atualizar_dados():
-    global df, ultima_atualizacao
+def processar_arquivo():
+    print("🔄 Iniciando processamento dos dados...")
 
-    baixar_arquivo()
+    # 🔹 Garante que o arquivo foi baixado corretamente
+    if not baixar_arquivo():
+        print("⛔ Processamento interrompido: arquivo não disponível!")
+        return  
 
-    with open("manifestacoes_original.csv", "rb") as f:
-        resultado = chardet.detect(f.read(10000))
+    print("🔄 Convertendo para UTF-8...")
+
+    with open(arquivo_baixado, "rb") as f:
+        resultado = chardet.detect(f.read(100000))
     codificacao_detectada = resultado["encoding"]
 
-    with open("manifestacoes_original.csv", "r", encoding=codificacao_detectada, errors="replace") as f_in, \
-         open("manifestacoes_utf8.csv", "w", encoding="utf-8") as f_out:
+    with open(arquivo_baixado, "r", encoding=codificacao_detectada, errors="replace") as f_in, \
+         open(arquivo_utf8, "w", encoding="utf-8") as f_out:
         for line in f_in:
             f_out.write(line)
 
-    print("✅ Arquivo convertido para UTF-8 com sucesso!")  # Depuração
+    if not os.path.exists(arquivo_utf8) or os.path.getsize(arquivo_utf8) == 0:
+        print("❌ ERRO: Arquivo convertido 'manifestacoes_utf8.csv' não encontrado!")
+        return  
 
-primeiro_chunk = True  # Para saber se precisa escrever o cabeçalho
+    print("✅ Conversão concluída! Processando CSV...")
 
-for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
-    chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra esfera Municipal
-    chunk = chunk[chunk["Nome Órgão"].isin(orgao_filtro)]  # Filtra órgãos permitidos
-    
-    # Salvar diretamente no arquivo sem acumular na memória
-    chunk.to_csv(arquivo_filtrado, mode="w" if primeiro_chunk else "a", sep=";", index=False, encoding="utf-8", header=primeiro_chunk)
-    primeiro_chunk = False  # Apenas o primeiro chunk escreve o cabeçalho
-    
-    # Criar DataFrame processado diretamente
-    df_list = []
+    # 🔹 Agora lê o arquivo final
+    df = pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=False, dtype=str)
+
+    print(f"✅ Arquivo processado com {len(df)} registros!")
+    return df
+
+# 🔹 CHAMAR A FUNÇÃO
+df = processar_arquivo()
+    global df, ultima_atualizacao
     
     # 🔹 Identificar colunas que contêm datas e converter corretamente
     colunas_data = [col for col in df.columns if "Data" in col or "data" in col]
