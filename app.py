@@ -16,6 +16,7 @@ from flask import Flask
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
 url = "https://www.dropbox.com/scl/fi/mnrue4bu7onf83canz1ci/manifestacoes_original.csv?rlkey=g930wemxtfjahz9akr4oq8d38&st=15naz7sd&dl=1"
+arquivo_original = "manifestacoes_original.csv"
 arquivo_utf8 = "manifestacoes_utf8.csv"
 ultima_atualizacao = ""
 
