@@ -64,7 +64,7 @@ def atualizar_dados():
     if len(pd.concat(dfs)) > 10000:  # Limite inicial de 10.000 registros
         break
 
-df = pd.concat(dfs, ignore_index=True)
+    df = pd.concat(dfs, ignore_index=True)
 
     colunas_desejadas = [
         "Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
