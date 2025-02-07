@@ -12,6 +12,7 @@ import pytz
 import os
 from datetime import datetime
 from dash.dependencies import Input, Output, State
+import flask
 from flask import Flask
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
@@ -20,6 +21,41 @@ arquivo_original = "manifestacoes_original.csv"
 arquivo_utf8 = "manifestacoes_utf8.csv"
 ultima_atualizacao = ""
 
+chunk_size = 10000  # Lê o arquivo em blocos de 10 mil linhas para evitar alto consumo de memória
+orgao_filtro = [
+    "Secretaria Municipal de Segurança e Ordem Pública",
+    "FLORAM - Fundação Municipal do Meio Ambiente",
+    "Pró-Cidadão",
+    "Secretaria Municipal da Fazenda",
+    "Secretaria Municipal do Continente",
+    "Secretaria Municipal de Saúde",
+    "Secretaria Municipal de Educação",
+    "PROCON",
+    "Secretaria Municipal da Assistência Social",
+    "Secretaria Municipal de Cultura, Esporte e Juventude",
+    "IPUF - Instituto de Pesquisa e Planejamento Urbano",
+    "IPREF - Instituto de Previdência de Florianópolis",
+    "Procuradoria Geral do Município",
+    "Secretaria Municipal de Meio Ambiente e Desenvolvimento Sustentável",
+    "Gabinete do Prefeito",
+    "Secretaria Municipal de Planejamento, Habitação e Desenvolvimento Urbano",
+    "Guarda Municipal",
+    "Secretaria Municipal de Planejamento e Inteligência Urbana",
+    "Defesa Civil de Florianópolis",
+    "Secretaria Municipal de Infraestrutura e Manutenção da Cidade",
+    "Secretaria Municipal da Casa Civil",
+    "Secretaria Municipal de Limpeza e Manutenção Urbana",
+    "FCFFC - Fundação Cultural de Florianópolis Franklin Cascaes",
+    "FME - Fundação Municipal de Esportes",
+    "IGEOF - Instituto de Geração de Oportunidades de Florianópolis",
+    "Prefeitura - Ouvidoria Geral",
+    "Secretaria Municipal de Cultura, Esporte e Lazer",
+    "Secretaria Municipal de Governo",
+    "Secretaria Municipal de Licitações, Contratos e Parcerias",
+    "SOMAR - Fundação Rede Solidária Somar Floripa",
+    "Secretaria Municipal de Turismo, Tecnologia e Desenvolvimento Econômico",
+    "Secretaria Municipal de Administração"
+]
 # 🔹 2. FUNÇÃO PARA BAIXAR O ARQUIVO 🔹
 def baixar_arquivo():
     global ultima_atualizacao, arquivo_original
@@ -53,51 +89,19 @@ def atualizar_dados():
         for line in f_in:
             f_out.write(line)
 
-    chunk_size = 5000  # Reduz o chunk para otimizar memória
+primeiro_chunk = True  # Para saber se precisa escrever o cabeçalho
 
+for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
+    chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra esfera Municipal
+    chunk = chunk[chunk["Nome Órgão"].isin(orgao_filtro)]  # Filtra órgãos permitidos
+    
+    # Salvar diretamente no arquivo sem acumular na memória
+    chunk.to_csv(arquivo_filtrado, mode="w" if primeiro_chunk else "a", sep=";", index=False, encoding="utf-8", header=primeiro_chunk)
+    primeiro_chunk = False  # Apenas o primeiro chunk escreve o cabeçalho
+    
     # Criar DataFrame processado diretamente
     df_list = []
     
-    for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
-        chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra antes de carregar
-        chunk = chunk[chunk["Nome Órgão"].isin([
-            "Secretaria Municipal de Segurança e Ordem Pública",
-            "FLORAM - Fundação Municipal do Meio Ambiente",
-            "Pró-Cidadão",
-            "Secretaria Municipal da Fazenda",
-            "Secretaria Municipal do Continente",
-            "Secretaria Municipal de Saúde",
-            "Secretaria Municipal de Educação",
-            "PROCON",
-            "Secretaria Municipal da Assistência Social",
-            "Secretaria Municipal de Cultura, Esporte e Juventude",
-            "IPUF - Instituto de Pesquisa e Planejamento Urbano",
-            "IPREF - Instituto de Previdência de Florianópolis",
-            "Procuradoria Geral do Município",
-            "Secretaria Municipal de Meio Ambiente e Desenvolvimento Sustentável",
-            "Gabinete do Prefeito",
-            "Secretaria Municipal de Planejamento, Habitação e Desenvolvimento Urbano",
-            "Guarda Municipal",
-            "Secretaria Municipal de Planejamento e Inteligência Urbana",
-            "Defesa Civil de Florianópolis",
-            "Secretaria Municipal de Infraestrutura e Manutenção da Cidade",
-            "Secretaria Municipal da Casa Civil",
-            "Secretaria Municipal de Limpeza e Manutenção Urbana",
-            "FCFFC - Fundação Cultural de Florianópolis Franklin Cascaes",
-            "FME - Fundação Municipal de Esportes",
-            "IGEOF - Instituto de Geração de Oportunidades de Florianópolis",
-            "Prefeitura - Ouvidoria Geral",
-            "Secretaria Municipal de Cultura, Esporte e Lazer",
-            "Secretaria Municipal de Governo",
-            "Secretaria Municipal de Licitações, Contratos e Parcerias",
-            "SOMAR - Fundação Rede Solidária Somar Floripa",
-            "Secretaria Municipal de Turismo, Tecnologia e Desenvolvimento Econômico",
-            "Secretaria Municipal de Administração"
-        ])]  # Filtra os órgãos permitidos
-        df_list.append(chunk)
-
-    df = pd.concat(df_list, ignore_index=True)  # Agora concatena tudo, mas já filtrado
-
     # 🔹 Identificar colunas que contêm datas e converter corretamente
     colunas_data = [col for col in df.columns if "Data" in col or "data" in col]
 
@@ -129,8 +133,8 @@ thread = threading.Thread(target=iniciar_agendamento, daemon=True)
 thread.start()
 
 # 🔹 5. INICIAR DASH 🔹
-server = Flask(__name__)
-app = dash.Dash(__name__, server=server, suppress_callback_exceptions=True)
+server = flask.Flask(__name__)
+app = dash.Dash(__name__, server=server)
 app.title = "FalaBR - Registros de Manifestações (Prefeitura de Florianópolis/SC)"
 
 # 🔹 6. DEFINIR OS FILTROS 🔹
