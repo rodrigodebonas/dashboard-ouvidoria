@@ -1,9 +1,10 @@
 dash
-pandas
-plotly
-requests
-chardet
-gunicorn
+dash-table
 flask
+pandas
+requests
+plotly
+gunicorn
+chardet
 schedule
 pytz
