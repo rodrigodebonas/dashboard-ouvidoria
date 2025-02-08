@@ -12,116 +12,109 @@ import pytz
 import os
 from datetime import datetime
 from dash.dependencies import Input, Output, State
-import flask
 from flask import Flask
 
 # 🔹 1. VARIÁVEIS GLOBAIS 🔹
 url = "https://dadosabertos-download.cgu.gov.br/e-Ouv/manifestacoes-ouvidoria.csv"
-arquivo_baixado = os.path.join(os.getcwd(), "manifestacoes_ouvidoria.csv")
-arquivo_utf8 = os.path.join(os.getcwd(), "manifestacoes_utf8.csv")
+arquivo_original = "manifestacoes_original.csv"
+arquivo_utf8 = "manifestacoes_utf8.csv"
 ultima_atualizacao = ""
 
-chunk_size = 10000  # Lê o arquivo em blocos de 10 mil linhas para evitar alto consumo de memória
-orgao_filtro = [
-    "Secretaria Municipal de Segurança e Ordem Pública",
-    "FLORAM - Fundação Municipal do Meio Ambiente",
-    "Pró-Cidadão",
-    "Secretaria Municipal da Fazenda",
-    "Secretaria Municipal do Continente",
-    "Secretaria Municipal de Saúde",
-    "Secretaria Municipal de Educação",
-    "PROCON",
-    "Secretaria Municipal da Assistência Social",
-    "Secretaria Municipal de Cultura, Esporte e Juventude",
-    "IPUF - Instituto de Pesquisa e Planejamento Urbano",
-    "IPREF - Instituto de Previdência de Florianópolis",
-    "Procuradoria Geral do Município",
-    "Secretaria Municipal de Meio Ambiente e Desenvolvimento Sustentável",
-    "Gabinete do Prefeito",
-    "Secretaria Municipal de Planejamento, Habitação e Desenvolvimento Urbano",
-    "Guarda Municipal",
-    "Secretaria Municipal de Planejamento e Inteligência Urbana",
-    "Defesa Civil de Florianópolis",
-    "Secretaria Municipal de Infraestrutura e Manutenção da Cidade",
-    "Secretaria Municipal da Casa Civil",
-    "Secretaria Municipal de Limpeza e Manutenção Urbana",
-    "FCFFC - Fundação Cultural de Florianópolis Franklin Cascaes",
-    "FME - Fundação Municipal de Esportes",
-    "IGEOF - Instituto de Geração de Oportunidades de Florianópolis",
-    "Prefeitura - Ouvidoria Geral",
-    "Secretaria Municipal de Cultura, Esporte e Lazer",
-    "Secretaria Municipal de Governo",
-    "Secretaria Municipal de Licitações, Contratos e Parcerias",
-    "SOMAR - Fundação Rede Solidária Somar Floripa",
-    "Secretaria Municipal de Turismo, Tecnologia e Desenvolvimento Econômico",
-    "Secretaria Municipal de Administração"
-]
 # 🔹 2. FUNÇÃO PARA BAIXAR O ARQUIVO 🔹
 def baixar_arquivo():
-    global ultima_atualizacao
+    global ultima_atualizacao, arquivo_original
 
     try:
-        response = requests.get(url, timeout=60)
+        response = requests.get(url, timeout=30)
         if response.status_code == 200:
-            with open(arquivo_baixado, "wb") as file:
+            with open(arquivo_original, "wb") as file:
                 file.write(response.content)
-            print(f"✅ Arquivo baixado com sucesso! Tamanho: {os.path.getsize(arquivo_baixado)} bytes")
         else:
-            print(f"❌ Erro ao baixar (Código {response.status_code})")
-            return False
+            raise Exception("Erro ao baixar via requests")
 
-    except Exception as e:
-        print(f"❌ ERRO NO DOWNLOAD: {e}")
-        return False
-        
-    if not os.path.exists(arquivo_baixado) or os.path.getsize(arquivo_baixado) == 0:
-        print("❌ ERRO: O arquivo não foi baixado corretamente!")
-        return False  # 🔹 Retorna False para interromper o processo
+    except Exception:
+        os.system(f"wget -O {arquivo_original} {url}")
+        if not os.path.exists(arquivo_original) or os.path.getsize(arquivo_original) == 0:
+            uploaded = files.upload()
+            arquivo_original = list(uploaded.keys())[0]
 
-    print(f"📂 Arquivos na pasta após o download: {os.listdir()}")
-    return True  
-    
 # 🔹 3. FUNÇÃO PARA PROCESSAR OS DADOS 🔹
-def processar_arquivo():
-    print("🔄 Iniciando processamento dos dados...")
+def atualizar_dados():
+    global df, ultima_atualizacao
 
-    # 🔹 Garante que o arquivo foi baixado corretamente
-    if not baixar_arquivo():
-        print("⛔ Processamento interrompido: arquivo não disponível!")
-        return  
+    baixar_arquivo()
 
-    print("🔄 Convertendo para UTF-8...")
-
-    with open(arquivo_baixado, "rb") as f:
+    with open(arquivo_original, "rb") as f:
         resultado = chardet.detect(f.read(100000))
     codificacao_detectada = resultado["encoding"]
 
-    with open(arquivo_baixado, "r", encoding=codificacao_detectada, errors="replace") as f_in, \
+    with open(arquivo_original, "r", encoding=codificacao_detectada, errors="replace") as f_in, \
          open(arquivo_utf8, "w", encoding="utf-8") as f_out:
         for line in f_in:
             f_out.write(line)
 
-    if not os.path.exists(arquivo_utf8) or os.path.getsize(arquivo_utf8) == 0:
-        print("❌ ERRO: Arquivo convertido 'manifestacoes_utf8.csv' não encontrado!")
-        return  
+    chunk_size = 50000
+    dfs = []
 
-    print("✅ Conversão concluída! Processando CSV...")
+    for chunk in pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=True, dtype=str, chunksize=chunk_size):
+        chunk = chunk[chunk["Esfera"] == "Municipal"]  # Filtra antes de carregar
+        dfs.append(chunk)
 
-    # 🔹 Agora lê o arquivo final
-    df = pd.read_csv(arquivo_utf8, sep=";", encoding="utf-8", low_memory=False, dtype=str)
+    df = pd.concat(dfs, ignore_index=True)
 
-    print(f"✅ Arquivo processado com {len(df)} registros!")
-    return df
+    colunas_desejadas = ["Ano", "Nome Órgão", "Tipo Manifestação", "Assunto", "Data Registro", "Município Manifestante", "UF do Município Manifestante",
+                          "Município Manifestação", "UF do Município Manifestação", ]
 
-# 🔹 CHAMAR A FUNÇÃO
-df = processar_arquivo()
-    global df, ultima_atualizacao
-    
+    df.columns = df.columns.str.strip()
+
+    # 🔹 Filtrar apenas registros com "Esfera" = "Municipal"
+    df = df[df["Esfera"] == "Municipal"]
+
+    # 🔹 Lista de órgãos permitidos
+    orgaos_permitidos = [
+        "Secretaria Municipal de Segurança e Ordem Pública",
+        "FLORAM - Fundação Municipal do Meio Ambiente",
+        "Pró-Cidadão",
+        "Secretaria Municipal da Fazenda",
+        "Secretaria Municipal do Continente",
+        "Secretaria Municipal de Saúde",
+        "Secretaria Municipal de Educação",
+        "PROCON",
+        "Secretaria Municipal da Assistência Social",
+        "Secretaria Municipal de Cultura, Esporte e Juventude",
+        "IPUF - Instituto de Pesquisa e Planejamento Urbano",
+        "IPREF - Instituto de Previdência de Florianópolis",
+        "Procuradoria Geral do Município",
+        "Secretaria Municipal de Meio Ambiente e Desenvolvimento Sustentável",
+        "Gabinete do Prefeito",
+        "Secretaria Municipal de Planejamento, Habitação e Desenvolvimento Urbano",
+        "Guarda Municipal",
+        "Secretaria Municipal de Planejamento e Inteligência Urbana",
+        "Defesa Civil de Florianópolis",
+        "Secretaria Municipal de Infraestrutura e Manutenção da Cidade",
+        "Secretaria Municipal da Casa Civil",
+        "Secretaria Municipal de Limpeza e Manutenção Urbana",
+        "FCFFC - Fundação Cultural de Florianópolis Franklin Cascaes",
+        "FME - Fundação Municipal de Esportes",
+        "IGEOF - Instituto de Geração de Oportunidades de Florianópolis",
+        "Prefeitura - Ouvidoria Geral",
+        "Secretaria Municipal de Cultura, Esporte e Lazer",
+        "Secretaria Municipal de Governo",
+        "Secretaria Municipal de Licitações, Contratos e Parcerias",
+        "SOMAR - Fundação Rede Solidária Somar Floripa",
+        "Secretaria Municipal de Turismo, Tecnologia e Desenvolvimento Econômico",
+        "Secretaria Municipal de Administração"
+    ]
+
+    # 🔹 Filtrar apenas registros que contenham os órgãos permitidos
+    df = df[df["Nome Órgão"].isin(orgaos_permitidos)]
+
     # 🔹 Identificar colunas que contêm datas e converter corretamente
-    colunas_data = [col for col in df.columns if "Data" in col or "data" in col]
+    colunas_data = [col for col in df.columns if "Data" in col or "data" in col]  # Detecta colunas com "Data" no nome
 
+    # 🔹 Aplicar a conversão para todas as colunas de data
     for col in colunas_data:
-        if col in df.columns:
+        if col in df.columns:  # Verifica se a coluna realmente existe no DataFrame
             df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True).dt.strftime("%d/%m/%Y")
 
     # 🔹 Criar a coluna "Ano" com base na "Data Registro"
@@ -135,7 +128,7 @@ df = processar_arquivo()
 
     fuso_brasilia = pytz.timezone("America/Sao_Paulo")
     ultima_atualizacao = datetime.now(fuso_brasilia).strftime("%d/%m/%Y %H:%M")
-    
+
 # 🔹 4. AGENDANDO ATUALIZAÇÃO DIÁRIA 🔹
 def iniciar_agendamento():
     schedule.every().day.at("01:00").do(atualizar_dados)
@@ -148,8 +141,8 @@ thread = threading.Thread(target=iniciar_agendamento, daemon=True)
 thread.start()
 
 # 🔹 5. INICIAR DASH 🔹
-server = flask.Flask(__name__)
-app = dash.Dash(__name__, server=server)
+server = Flask(__name__)
+app = dash.Dash(__name__, server=server, suppress_callback_exceptions=True)
 app.title = "FalaBR - Registros de Manifestações (Prefeitura de Florianópolis/SC)"
 
 # 🔹 6. DEFINIR OS FILTROS 🔹
@@ -232,8 +225,5 @@ def atualizar_tabela(n_aplicar, n_limpar, *valores_filtros):
 
     return df_filtrado.to_dict("records"), f"Total filtrado: {len(df_filtrado):,.0f}".replace(",", "."), "Filtros aplicados!"
 
-import os
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))  # Usa a porta do ambiente ou 8080
-    app.run_server(debug=True, host="0.0.0.0", port=port)
+    app.run_server(debug=True, host="0.0.0.0", port=8050)
